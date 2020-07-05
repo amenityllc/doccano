@@ -61,7 +61,16 @@ class BaseStorage(object):
 
     @classmethod
     def extract_label(cls, data):
-        return [d.get('labels', []) for d in data]
+        labels = []
+        for d in data:
+            if 'labels' in d:
+                lbls = d.get('labels', [])
+            elif 'entities' in d:
+                lbls = d.get('entities', [])
+            else:
+                lbls = []
+            labels.append(lbls)
+        return labels
 
     @classmethod
     def exclude_created_labels(cls, labels, created):
@@ -128,6 +137,7 @@ class ClassificationStorage(BaseStorage):
     {"text": "Python is awesome!", "labels": ["positive"]}
     ...
     """
+
     @transaction.atomic
     def save(self, user):
         saved_labels = {label.text: label for label in self.project.labels.all()}
@@ -163,6 +173,7 @@ class SequenceLabelingStorage(BaseStorage):
     {"text": "Python is awesome!", "labels": [[0, 6, "Product"],]}
     ...
     """
+
     @transaction.atomic
     def save(self, user):
         saved_labels = {label.text: label for label in self.project.labels.all()}
@@ -202,6 +213,7 @@ class Seq2seqStorage(BaseStorage):
     {"text": "Hello, World!", "labels": ["こんにちは、世界!"]}
     ...
     """
+
     @transaction.atomic
     def save(self, user):
         for data in self.data:
@@ -226,6 +238,7 @@ class Speech2textStorage(BaseStorage):
     {"audio": "data:audio/mpeg;base64,...", "transcription": "こんにちは、世界!"}
     ...
     """
+
     @transaction.atomic
     def save(self, user):
         for data in self.data:
@@ -278,6 +291,7 @@ class CoNLLParser(FileParser):
     ...
     ```
     """
+
     def parse(self, file):
         data = []
         file = EncodedIO(file)
@@ -335,6 +349,7 @@ class PlainTextParser(FileParser):
     ...
     ```
     """
+
     def parse(self, file):
         file = EncodedIO(file)
         file = io.TextIOWrapper(file, encoding=file.encoding)
@@ -359,6 +374,7 @@ class CSVParser(FileParser):
     ...
     ```
     """
+
     def parse(self, file):
         file = EncodedIO(file)
         file = io.TextIOWrapper(file, encoding=file.encoding)
@@ -500,6 +516,7 @@ class CSVPainter(JSONPainter):
 
 def iterable_to_io(iterable, buffer_size=io.DEFAULT_BUFFER_SIZE):
     """See https://stackoverflow.com/a/20260030/3817588."""
+
     class IterStream(io.RawIOBase):
         def __init__(self):
             self.leftover = None
@@ -515,7 +532,7 @@ def iterable_to_io(iterable, buffer_size=io.DEFAULT_BUFFER_SIZE):
                 b[:len(output)] = output
                 return len(output)
             except StopIteration:
-                return 0    # indicate EOF
+                return 0  # indicate EOF
 
     return io.BufferedReader(IterStream(), buffer_size=buffer_size)
 
